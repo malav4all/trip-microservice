@@ -3,6 +3,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -254,53 +255,78 @@ export class TripService {
       );
     }
   }
-
   async searchTrips(
     filters: any,
     page: number = 1,
     limit: number = 10,
   ): Promise<{ trips: Trip[]; total: number }> {
     try {
-      const skip = (page - 1) * limit;
-      const query: any = {};
+      const pageNum = Number(page);
+      const limitNum = Number(limit);
+      const skip = (pageNum - 1) * limitNum;
 
-      // Apply dynamic filters
-      for (const key in filters) {
-        if (filters[key]) {
-          if (key === '_id' && Types.ObjectId.isValid(filters[key])) {
-            // Correct way to create ObjectId without using deprecated method
-            query._id = new Types.ObjectId(filters[key]);
-          } else if (key === 'startDate' || key === 'endDate') {
-            // Handle date range filtering
-            if (!query.startDate) query.startDate = {};
-            if (!query.endDate) query.endDate = {};
+      const matchStage: any = {};
 
-            if (key === 'startDate')
-              query.startDate.$gte = new Date(filters[key]);
-            if (key === 'endDate') query.endDate.$lte = new Date(filters[key]);
-          } else {
-            query[key] = filters[key]; // Apply generic filter
-          }
+      if (filters._id) {
+        if (Types.ObjectId.isValid(filters._id)) {
+          matchStage._id = new Types.ObjectId(filters._id);
+        } else {
+          console.error('Invalid ObjectId:', filters._id);
+          throw new BadRequestException('Invalid Trip ID format');
         }
       }
-      console.log(query);
-      // Execute query with pagination
-      const [trips, total] = await Promise.all([
-        this.tripModel
-          .find(query)
-          .skip(skip)
-          .limit(limit)
-          .populate('routeDetails.sourceHub')
-          .populate('routeDetails.destinationHub')
-          .populate('routeDetails.viaHub')
-          .exec(),
-        this.tripModel.countDocuments(query).exec(),
-      ]);
+
+      const { _id, page: _, limit: __, ...otherFilters } = filters;
+
+      for (const [key, value] of Object.entries(otherFilters)) {
+        if (value !== undefined && value !== null) {
+          matchStage[key] = value;
+        }
+      }
+
+      const aggregationPipeline = [
+        { $match: matchStage },
+        {
+          $lookup: {
+            from: 'geofences',
+            localField: 'routeDetails.sourceHub',
+            foreignField: '_id',
+            as: 'routeDetails.sourceHub',
+          },
+        },
+        {
+          $lookup: {
+            from: 'geofences',
+            localField: 'routeDetails.destinationHub',
+            foreignField: '_id',
+            as: 'routeDetails.destinationHub',
+          },
+        },
+        {
+          $lookup: {
+            from: 'geofences',
+            localField: 'routeDetails.viaHub',
+            foreignField: '_id',
+            as: 'routeDetails.viaHub',
+          },
+        },
+        {
+          $facet: {
+            metadata: [{ $count: 'total' }],
+            data: [{ $skip: skip }, { $limit: limitNum }],
+          },
+        },
+      ];
+
+      const [result] = await this.tripModel.aggregate(aggregationPipeline);
+
+      const trips = result?.data || [];
+      const total = result?.metadata?.[0]?.total || 0;
 
       return { trips, total };
     } catch (error) {
       throw new InternalServerErrorException(
-        'Error searching trips',
+        'Error fetching trips',
         error.message,
       );
     }

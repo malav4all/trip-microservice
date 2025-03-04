@@ -62,59 +62,27 @@ export class TripController {
       );
     }
   }
-
-  @Get('status/:status')
-  async findByStatus(
-    @Param('status') status: string,
+  @Get('tripSearch')
+  async searchTrips(
+    @Query() queryParams: Record<string, any>,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ) {
     try {
-      const data = await this.tripService.findByStatus(
-        status,
+      const { ...filters } = queryParams;
+      const data = await this.tripService.searchTrips(
+        filters,
         Number(page),
         Number(limit),
       );
-      return new ApiResponse(
-        true,
-        200,
-        `Trips with status ${status} retrieved successfully`,
-        data,
-      );
+      return new ApiResponse(true, 200, 'Trips retrieved successfully', data);
     } catch (error) {
-      throw new HttpException(
-        new ApiResponse(
-          false,
-          500,
-          'Failed to fetch trips by status',
-          undefined,
-          error.message,
-        ),
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
-  @Get('vehicle/:vehid')
-  async findByVehicleId(@Param('vehid') vehid: number) {
-    try {
-      const trips = await this.tripService.findByVehicleId(vehid);
       return new ApiResponse(
-        true,
-        200,
-        `Trips for vehicle ID ${vehid} retrieved successfully`,
-        trips,
-      );
-    } catch (error) {
-      throw new HttpException(
-        new ApiResponse(
-          false,
-          500,
-          'Failed to fetch trips by status',
-          undefined,
-          error.message,
-        ),
-        HttpStatus.BAD_REQUEST,
+        false,
+        500,
+        'Failed to search tripssss',
+        undefined,
+        error.message,
       );
     }
   }
@@ -144,7 +112,7 @@ export class TripController {
         new ApiResponse(
           false,
           500,
-          'Failed to fetch trips by status',
+          'Failed to fetch trips by date range',
           undefined,
           error.message,
         ),
@@ -166,7 +134,63 @@ export class TripController {
         new ApiResponse(
           false,
           500,
-          'Failed to fetch trips by status',
+          'Failed to fetch trip',
+          undefined,
+          error.message,
+        ),
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('status/:status')
+  async findByStatus(
+    @Param('status') status: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    try {
+      const data = await this.tripService.findByStatus(
+        status,
+        Number(page),
+        Number(limit),
+      );
+      return new ApiResponse(
+        true,
+        200,
+        `Trips with status ${status} retrieved successfully`,
+        data,
+      );
+    } catch (error) {
+      throw new HttpException(
+        new ApiResponse(
+          false,
+          500,
+          'Failed to fetch trips by statussss',
+          undefined,
+          error.message,
+        ),
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('vehicle/:vehid')
+  async findByVehicleId(@Param('vehid') vehid: number) {
+    try {
+      const trips = await this.tripService.findByVehicleId(vehid);
+      return new ApiResponse(
+        true,
+        200,
+        `Trips for vehicle ID ${vehid} retrieved successfully`,
+        trips,
+      );
+    } catch (error) {
+      throw new HttpException(
+        new ApiResponse(
+          false,
+          500,
+          'Failed to fetch trips by statusssss',
           undefined,
           error.message,
         ),
@@ -220,32 +244,6 @@ export class TripController {
           error.message,
         ),
         HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
-  @Get('search')
-  async searchTrips(
-    @Query() queryParams: Record<string, any>,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-  ) {
-    try {
-      const { page: _, limit: __, ...filters } = queryParams;
-
-      const data = await this.tripService.searchTrips(
-        filters,
-        Number(page),
-        Number(limit),
-      );
-      return new ApiResponse(true, 200, 'Trips retrieved successfully', data);
-    } catch (error) {
-      return new ApiResponse(
-        false,
-        500,
-        'Failed to search trips',
-        undefined,
-        error.message,
       );
     }
   }
