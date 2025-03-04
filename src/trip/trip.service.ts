@@ -9,6 +9,7 @@ import { Model } from 'mongoose';
 import { Trip } from './schema/trip.schema';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class TripService {
@@ -180,7 +181,14 @@ export class TripService {
       const skip = (page - 1) * limit;
 
       const [trips, total] = await Promise.all([
-        this.tripModel.find({ status }).skip(skip).limit(limit).exec(),
+        this.tripModel
+          .find({ status })
+          .populate('routeDetails.sourceHub')
+          .populate('routeDetails.destinationHub')
+          .populate('routeDetails.viaHub')
+          .skip(skip)
+          .limit(limit)
+          .exec(),
         this.tripModel.countDocuments({ status }).exec(),
       ]);
 
@@ -197,6 +205,9 @@ export class TripService {
     try {
       return await this.tripModel
         .find({ 'vehicleDetails.vehid': vehid })
+        .populate('routeDetails.sourceHub')
+        .populate('routeDetails.destinationHub')
+        .populate('routeDetails.viaHub')
         .exec();
     } catch (error) {
       throw new InternalServerErrorException(
@@ -221,6 +232,9 @@ export class TripService {
             startDate: { $gte: startDate },
             endDate: { $lte: endDate },
           })
+          .populate('routeDetails.sourceHub')
+          .populate('routeDetails.destinationHub')
+          .populate('routeDetails.viaHub')
           .skip(skip)
           .limit(limit)
           .exec(),
@@ -253,30 +267,23 @@ export class TripService {
       // Apply dynamic filters
       for (const key in filters) {
         if (filters[key]) {
-          if (key === 'startDate' || key === 'endDate') {
-            // Handle date range filter
+          if (key === '_id' && Types.ObjectId.isValid(filters[key])) {
+            // Correct way to create ObjectId without using deprecated method
+            query._id = new Types.ObjectId(filters[key]);
+          } else if (key === 'startDate' || key === 'endDate') {
+            // Handle date range filtering
             if (!query.startDate) query.startDate = {};
             if (!query.endDate) query.endDate = {};
 
             if (key === 'startDate')
               query.startDate.$gte = new Date(filters[key]);
             if (key === 'endDate') query.endDate.$lte = new Date(filters[key]);
-          } else if (key === 'clientName') {
-            // Handle case-insensitive search in ClientDetails
-            query['clientDetails.ConsigneeName'] = new RegExp(
-              filters[key],
-              'i',
-            );
-          } else if (key === 'vehid') {
-            // Convert vehid to number and filter inside vehicleDetails
-            query['vehicleDetails.vehid'] = Number(filters[key]);
           } else {
-            // Generic search for other fields
-            query[key] = filters[key];
+            query[key] = filters[key]; // Apply generic filter
           }
         }
       }
-
+      console.log(query);
       // Execute query with pagination
       const [trips, total] = await Promise.all([
         this.tripModel
