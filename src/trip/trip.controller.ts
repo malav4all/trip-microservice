@@ -13,7 +13,7 @@ import {
 import { TripService } from './trip.service';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
-import { ApiResponse } from 'src/comnman/api-response';
+import { ApiResponse } from 'src/common/api-response';
 
 @Controller('trip')
 export class TripController {
