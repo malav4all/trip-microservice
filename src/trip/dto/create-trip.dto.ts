@@ -189,25 +189,30 @@ export class CreateTripDto {
   @IsObject()
   @ValidateNested()
   @Type(() => RouteDetailsDto)
+  @IsOptional()
   routeDetails: RouteDetailsDto;
 
   @IsObject()
   @ValidateNested()
   @Type(() => VehicleDetailsDto)
+  @IsOptional()
   vehicleDetails: VehicleDetailsDto;
 
   @IsObject()
   @ValidateNested()
   @Type(() => ClientDetailsDto)
+  @IsOptional()
   clientDetails: ClientDetailsDto;
 
   @IsObject()
   @ValidateNested()
   @Type(() => OtherDetailsDto)
+  @IsOptional()
   otherDetails: OtherDetailsDto;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AlertConfigurationDto)
+  @IsOptional()
   alertConfiguration: AlertConfigurationDto[];
 }
