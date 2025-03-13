@@ -13,135 +13,6 @@ class RouteDetails {
   viaHub: MongooseSchema.Types.ObjectId[];
 }
 
-@Schema({ _id: false })
-class VehicleDetails {
-  @Prop()
-  acc: number;
-
-  @Prop()
-  loadcell: string;
-
-  @Prop()
-  oacc: string;
-
-  @Prop()
-  vehname: string;
-
-  @Prop()
-  parentname: string;
-
-  @Prop()
-  drivername: string;
-
-  @Prop()
-  imsi: string;
-
-  @Prop()
-  type: string;
-
-  @Prop()
-  operator: string;
-
-  @Prop()
-  vehnum: string;
-
-  @Prop()
-  prop: string;
-
-  @Prop()
-  accid: number;
-
-  @Prop()
-  client: string;
-
-  @Prop()
-  driverphone: string;
-
-  @Prop()
-  vehid: number;
-
-  @Prop()
-  id: number;
-
-  @Prop()
-  refid: string;
-
-  @Prop()
-  camera: string;
-
-  @Prop()
-  devpass: string;
-
-  @Prop()
-  accname: string;
-
-  @Prop()
-  cts: string;
-
-  @Prop()
-  jts: string;
-
-  @Prop()
-  updatedts: string;
-
-  @Prop()
-  priority: string;
-
-  @Prop()
-  devicetypeid: number;
-
-  @Prop()
-  name: string;
-
-  @Prop()
-  imei: string;
-
-  @Prop()
-  vehtype: string;
-
-  @Prop()
-  status: string;
-
-  @Prop()
-  imb: string;
-}
-
-@Schema({ _id: false })
-class ClientDetails {
-  @Prop()
-  ConsigneeName: string;
-
-  @Prop()
-  ConsignorName: string;
-
-  @Prop()
-  receiptNo: string;
-
-  @Prop()
-  gstNo: string;
-}
-
-@Schema({ _id: false })
-class OtherDetails {
-  @Prop({ type: [String], default: [] })
-  comments: string[];
-}
-
-@Schema({ _id: false })
-class AlertConfiguration {
-  @Prop()
-  alertName: string;
-
-  @Prop()
-  alertType: string;
-
-  @Prop()
-  value: string;
-
-  @Prop({ name: 'alertInterval(in minutes)' })
-  alertInterval: number;
-}
-
 @Schema({ timestamps: true })
 export class Trip extends Document {
   @Prop({ unique: true })
@@ -168,17 +39,17 @@ export class Trip extends Document {
   @Prop({ type: RouteDetails })
   routeDetails: RouteDetails;
 
-  @Prop({ type: VehicleDetails })
-  vehicleDetails: VehicleDetails;
+  @Prop({ type: Object })
+  vehicleDetails: Record<string, any>;
 
-  @Prop({ type: ClientDetails })
-  clientDetails: ClientDetails;
+  @Prop({ type: Object })
+  clientDetails: Record<string, any>;
 
-  @Prop({ type: OtherDetails })
-  otherDetails: OtherDetails;
+  @Prop({ type: Object })
+  otherDetails: Record<string, any>;
 
-  @Prop({ type: [AlertConfiguration] })
-  alertConfiguration: AlertConfiguration[];
+  @Prop({ type: [Object] })
+  alertConfiguration: Record<string, any>[];
 }
 
 export const TripSchema = SchemaFactory.createForClass(Trip);

@@ -19,26 +19,26 @@ export class TripService {
   async create(createTripDto: CreateTripDto): Promise<Trip> {
     try {
       // Check for duplicate trips based on key fields
-      const existingTrip = await this.tripModel
-        .findOne({
-          'vehicleDetails.vehid': createTripDto.vehicleDetails?.vehid,
-          'vehicleDetails.imei': createTripDto.vehicleDetails?.imei,
-          startDate: createTripDto.startDate,
-          'routeDetails.sourceHub': createTripDto.routeDetails?.sourceHub,
-          'routeDetails.destinationHub':
-            createTripDto.routeDetails?.destinationHub,
-          status: { $nin: ['COMPLETED', 'CANCELLED'] }, // Exclude completed or cancelled trips
-        })
-        .exec();
+      // const existingTrip = await this.tripModel
+      //   .findOne({
+      //     'vehicleDetails.vehid': createTripDto.vehicleDetails?.vehid,
+      //     'vehicleDetails.imei': createTripDto.vehicleDetails?.imei,
+      //     startDate: createTripDto.startDate,
+      //     'routeDetails.sourceHub': createTripDto.routeDetails?.sourceHub,
+      //     'routeDetails.destinationHub':
+      //       createTripDto.routeDetails?.destinationHub,
+      //     status: { $nin: ['COMPLETED', 'CANCELLED'] }, // Exclude completed or cancelled trips
+      //   })
+      //   .exec();
 
-      if (existingTrip) {
-        throw new ConflictException(
-          'A trip with the same vehicle, date, and route already exists and is not completed',
-        );
-      }
+      // if (existingTrip) {
+      //   throw new ConflictException(
+      //     'A trip with the same vehicle, date, and route already exists and is not completed',
+      //   );
+      // }
 
       // Generate Unique Trip ID
-      const tripId = `TRIP-${createTripDto.vehicleDetails?.vehid || createTripDto.vehicleDetails?.imei}-${Date.now()}`;
+      const tripId = `TRIP-${Date.now()}`;
 
       // Create a new trip
       const newTrip = new this.tripModel({

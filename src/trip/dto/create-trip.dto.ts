@@ -24,141 +24,6 @@ class RouteDetailsDto {
   viaHub: string[];
 }
 
-class VehicleDetailsDto {
-  @IsOptional()
-  acc: number;
-
-  @IsOptional()
-  loadcell: string;
-
-  @IsOptional()
-  oacc: string;
-
-  @IsOptional()
-  vehname: string;
-
-  @IsOptional()
-  parentname: string;
-
-  @IsOptional()
-  drivername: string;
-
-  @IsOptional()
-  imsi: string;
-
-  @IsOptional()
-  type: string;
-
-  @IsOptional()
-  operator: string;
-
-  @IsOptional()
-  vehnum: string;
-
-  @IsOptional()
-  prop: string;
-
-  @IsOptional()
-  accid: number;
-
-  @IsOptional()
-  client: string;
-
-  @IsOptional()
-  driverphone: string;
-
-  @IsOptional()
-  vehid: number;
-
-  @IsOptional()
-  id: number;
-
-  @IsOptional()
-  refid: string;
-
-  @IsOptional()
-  camera: string;
-
-  @IsOptional()
-  devpass: string;
-
-  @IsOptional()
-  accname: string;
-
-  @IsOptional()
-  cts: string;
-
-  @IsOptional()
-  jts: string;
-
-  @IsOptional()
-  updatedts: string;
-
-  @IsOptional()
-  priority: string;
-
-  @IsOptional()
-  devicetypeid: number;
-
-  @IsOptional()
-  name: string;
-
-  @IsOptional()
-  imei: string;
-
-  @IsOptional()
-  vehtype: string;
-
-  @IsOptional()
-  status: string;
-
-  @IsOptional()
-  imb: string;
-}
-
-class ClientDetailsDto {
-  @IsOptional()
-  @IsString()
-  ConsigneeName: string;
-
-  @IsOptional()
-  @IsString()
-  ConsignorName: string;
-
-  @IsOptional()
-  @IsString()
-  receiptNo: string;
-
-  @IsOptional()
-  @IsString()
-  gstNo: string;
-}
-
-class OtherDetailsDto {
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  comments: string[];
-}
-
-class AlertConfigurationDto {
-  @IsNotEmpty()
-  @IsString()
-  alertName: string;
-
-  @IsNotEmpty()
-  @IsString()
-  alertType: string;
-
-  @IsNotEmpty()
-  @IsString()
-  value: string;
-
-  @IsNotEmpty()
-  @IsOptional()
-  'alertInterval(in minutes)': number;
-}
-
 export class CreateTripDto {
   @IsOptional()
   @IsString()
@@ -192,27 +57,19 @@ export class CreateTripDto {
   @IsOptional()
   routeDetails: RouteDetailsDto;
 
-  @IsObject()
-  @ValidateNested()
-  @Type(() => VehicleDetailsDto)
   @IsOptional()
-  vehicleDetails: VehicleDetailsDto;
-
   @IsObject()
-  @ValidateNested()
-  @Type(() => ClientDetailsDto)
-  @IsOptional()
-  clientDetails: ClientDetailsDto;
+  vehicleDetails: Record<string, any>;
 
+  @IsOptional()
   @IsObject()
-  @ValidateNested()
-  @Type(() => OtherDetailsDto)
-  @IsOptional()
-  otherDetails: OtherDetailsDto;
+  clientDetails: Record<string, any>;
 
+  @IsOptional()
+  @IsObject()
+  otherDetails: Record<string, any>;
+
+  @IsOptional()
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => AlertConfigurationDto)
-  @IsOptional()
-  alertConfiguration: AlertConfigurationDto[];
+  alertConfiguration: Record<string, any>[];
 }
