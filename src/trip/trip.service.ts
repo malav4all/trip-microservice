@@ -136,25 +136,19 @@ export class TripService {
     Object.entries(search).forEach(([key, value]) => {
       // Handle different types of search parameters
       if (value !== null && value !== undefined) {
-        if (key === '_id') {
-          // Special handling for _id field
+        if (key === '_id' || key === 'userId' || key.endsWith('Id')) {
+          // Handle all ID fields consistently
           try {
             matchStage[key] = new mongoose.Types.ObjectId(value as string);
           } catch (error) {
-            console.log(`Invalid ObjectId format for _id: ${value}`);
-            // You could either skip this field or use the original value
-            // matchStage[key] = value; // Use this if you want to keep the original value
+            console.log(
+              `Invalid ObjectId format for ${key}: ${value}, Error: ${error.message}`,
+            );
+            // Skip this field if conversion fails
           }
         } else if (typeof value === 'string' && value.trim() !== '') {
           // For string values, use regex for partial matching
           matchStage[key] = { $regex: value, $options: 'i' };
-        } else if (key.endsWith('Id')) {
-          // For other ID fields, ensure proper ObjectId handling
-          try {
-            matchStage[key] = new mongoose.Types.ObjectId(value as string);
-          } catch (error) {
-            matchStage[key] = value;
-          }
         } else {
           // For other values, use exact matching
           matchStage[key] = value;
