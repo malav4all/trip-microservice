@@ -31,6 +31,10 @@ export class CreateTripDto {
 
   @IsOptional()
   @IsString()
+  userId: string;
+
+  @IsOptional()
+  @IsString()
   movementStatus: string;
 
   @IsOptional()

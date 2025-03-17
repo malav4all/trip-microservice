@@ -38,15 +38,19 @@ export class TripController {
     }
   }
 
-  @Get()
+  @Post('listTrip')
   async findAll(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Body() searchDto: { page?: number; limit?: number; search?: any },
   ) {
     try {
+      const page = searchDto.page || 1;
+      const limit = searchDto.limit || 10;
+      const search = searchDto.search || {};
+
       const data = await this.tripService.findAll(
-        Number(+page),
-        Number(+limit),
+        Number(page),
+        Number(limit),
+        search,
       );
       return new ApiResponse(true, 200, 'Trips retrieved successfully', data);
     } catch (error) {
@@ -62,6 +66,7 @@ export class TripController {
       );
     }
   }
+
   @Get('tripSearch')
   async searchTrips(
     @Query() queryParams: Record<string, any>,

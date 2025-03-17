@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import { Trip } from './schema/trip.schema';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
@@ -61,12 +61,18 @@ export class TripService {
   async findAll(
     page: number = 1,
     limit: number = 10,
+    search: any = {},
   ): Promise<{ trips: Trip[]; total: number }> {
     try {
       const skip = (page - 1) * limit;
 
+      // Build match stage based on search parameters
+      const matchStage = this.buildMatchStage(search);
+
       // Aggregation pipeline
       const [result] = await this.tripModel.aggregate([
+        // Add match stage if search parameters are provided
+        ...(Object.keys(matchStage).length > 0 ? [{ $match: matchStage }] : []),
         {
           $facet: {
             metadata: [{ $count: 'total' }],
@@ -97,6 +103,14 @@ export class TripService {
                   as: 'routeDetails.viaHub',
                 },
               },
+              {
+                $lookup: {
+                  from: 'users',
+                  localField: 'userId',
+                  foreignField: '_id',
+                  as: 'userDetail',
+                },
+              },
             ],
           },
         },
@@ -113,6 +127,42 @@ export class TripService {
         error.message,
       );
     }
+  }
+
+  private buildMatchStage(search: any): any {
+    const matchStage = {};
+
+    // Process search parameters
+    Object.entries(search).forEach(([key, value]) => {
+      // Handle different types of search parameters
+      if (value !== null && value !== undefined) {
+        if (key === '_id') {
+          // Special handling for _id field
+          try {
+            matchStage[key] = new mongoose.Types.ObjectId(value as string);
+          } catch (error) {
+            console.log(`Invalid ObjectId format for _id: ${value}`);
+            // You could either skip this field or use the original value
+            // matchStage[key] = value; // Use this if you want to keep the original value
+          }
+        } else if (typeof value === 'string' && value.trim() !== '') {
+          // For string values, use regex for partial matching
+          matchStage[key] = { $regex: value, $options: 'i' };
+        } else if (key.endsWith('Id')) {
+          // For other ID fields, ensure proper ObjectId handling
+          try {
+            matchStage[key] = new mongoose.Types.ObjectId(value as string);
+          } catch (error) {
+            matchStage[key] = value;
+          }
+        } else {
+          // For other values, use exact matching
+          matchStage[key] = value;
+        }
+      }
+    });
+
+    return matchStage;
   }
 
   async findOne(id: string): Promise<Trip> {

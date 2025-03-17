@@ -18,6 +18,9 @@ export class Trip extends Document {
   @Prop({ unique: true })
   tripId: string;
 
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Users' })
+  userId: MongooseSchema.Types.ObjectId;
+
   @Prop()
   status: string;
 
