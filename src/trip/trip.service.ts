@@ -204,7 +204,7 @@ export class TripService {
           // Check if it has field property with DBmaster
           if (vehicleInfo && vehicleInfo.field && vehicleInfo.field.DBmaster) {
             const collectionName = vehicleInfo.field.DBmaster;
-            const vehicleId = vehicleInfo.field.value || vehicleInfo._id;
+            const vehicleId = vehicleInfo._id;
 
             try {
               // Get the dynamic collection using mongoose connection
