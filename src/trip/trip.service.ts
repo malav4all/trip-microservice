@@ -5,8 +5,8 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import mongoose, { Connection, Model } from 'mongoose';
+import { InjectModel, InjectConnection } from '@nestjs/mongoose';
+import mongoose, { Model, Connection } from 'mongoose';
 import { Trip } from './schema/trip.schema';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
@@ -21,25 +21,6 @@ export class TripService {
 
   async create(createTripDto: CreateTripDto): Promise<Trip> {
     try {
-      // Check for duplicate trips based on key fields
-      // const existingTrip = await this.tripModel
-      //   .findOne({
-      //     'vehicleDetails.vehid': createTripDto.vehicleDetails?.vehid,
-      //     'vehicleDetails.imei': createTripDto.vehicleDetails?.imei,
-      //     startDate: createTripDto.startDate,
-      //     'routeDetails.sourceHub': createTripDto.routeDetails?.sourceHub,
-      //     'routeDetails.destinationHub':
-      //       createTripDto.routeDetails?.destinationHub,
-      //     status: { $nin: ['COMPLETED', 'CANCELLED'] }, // Exclude completed or cancelled trips
-      //   })
-      //   .exec();
-
-      // if (existingTrip) {
-      //   throw new ConflictException(
-      //     'A trip with the same vehicle, date, and route already exists and is not completed',
-      //   );
-      // }
-
       // Generate Unique Trip ID
       const tripId = `TRIP-${Date.now()}`;
 
@@ -122,33 +103,42 @@ export class TripService {
 
       // Process vehicle details for each trip with dynamic collection lookup
       for (const trip of trips) {
-        if (
-          trip.vehicleDetails &&
-          trip.vehicleDetails.field &&
-          trip.vehicleDetails.field.DBmaster
-        ) {
-          const collectionName = trip.vehicleDetails.field.DBmaster;
-          const vehicleId = trip.vehicleDetails._id;
+        if (trip.vehicleDetails) {
+          // Loop through each key in vehicleDetails (could be vehicleNumber, vehicleType, etc.)
+          for (const vehicleKey of Object.keys(trip.vehicleDetails)) {
+            const vehicleInfo = trip.vehicleDetails[vehicleKey];
 
-          try {
-            // Get the dynamic collection using mongoose connection
-            const dynamicCollection =
-              this.connection.collection(collectionName);
+            // Check if it has field property with DBmaster
+            if (
+              vehicleInfo &&
+              vehicleInfo.field &&
+              vehicleInfo.field.DBmaster
+            ) {
+              const collectionName = vehicleInfo.field.DBmaster;
+              const vehicleId = vehicleInfo.field.value || vehicleInfo._id;
 
-            // Find the vehicle document in the dynamic collection
-            const vehicleDoc = await dynamicCollection.findOne({
-              _id: new Types.ObjectId(vehicleId),
-            });
-            // Add the vehicle details to the trip using collection name as the key
-            if (vehicleDoc) {
-              trip.vehicleDetails[collectionName] = vehicleDoc;
+              try {
+                // Get the dynamic collection using mongoose connection
+                const dynamicCollection =
+                  this.connection.collection(collectionName);
+
+                // Find the vehicle document in the dynamic collection
+                const vehicleDoc = await dynamicCollection.findOne({
+                  _id: new Types.ObjectId(vehicleId),
+                });
+
+                // Add the vehicle details to the trip under the original key
+                if (vehicleDoc) {
+                  trip.vehicleDetails[vehicleKey][collectionName] = vehicleDoc;
+                }
+              } catch (error) {
+                console.error(
+                  `Error fetching vehicle details from ${collectionName} for ${vehicleKey}:`,
+                  error.message,
+                );
+                // Continue with other details even if one fails
+              }
             }
-          } catch (error) {
-            console.error(
-              `Error fetching vehicle details from ${collectionName}:`,
-              error.message,
-            );
-            // Continue with other trips even if one fails
           }
         }
       }
@@ -204,6 +194,42 @@ export class TripService {
       if (!trip) {
         throw new NotFoundException(`Trip with ID ${id} not found`);
       }
+
+      // Process vehicle details for dynamic collection lookup
+      if (trip.vehicleDetails) {
+        // Loop through each key in vehicleDetails (could be vehicleNumber, vehicleType, etc.)
+        for (const vehicleKey of Object.keys(trip.vehicleDetails)) {
+          const vehicleInfo = trip.vehicleDetails[vehicleKey];
+
+          // Check if it has field property with DBmaster
+          if (vehicleInfo && vehicleInfo.field && vehicleInfo.field.DBmaster) {
+            const collectionName = vehicleInfo.field.DBmaster;
+            const vehicleId = vehicleInfo.field.value || vehicleInfo._id;
+
+            try {
+              // Get the dynamic collection using mongoose connection
+              const dynamicCollection =
+                this.connection.collection(collectionName);
+
+              // Find the vehicle document in the dynamic collection
+              const vehicleDoc = await dynamicCollection.findOne({
+                _id: new Types.ObjectId(vehicleId),
+              });
+
+              // Add the vehicle details to the trip under the original key
+              if (vehicleDoc) {
+                trip.vehicleDetails[vehicleKey][collectionName] = vehicleDoc;
+              }
+            } catch (error) {
+              console.error(
+                `Error fetching vehicle details from ${collectionName} for ${vehicleKey}:`,
+                error.message,
+              );
+            }
+          }
+        }
+      }
+
       return trip;
     } catch (error) {
       throw new InternalServerErrorException(
@@ -332,6 +358,7 @@ export class TripService {
       );
     }
   }
+
   async searchTrips(
     filters: any,
     page: number = 1,
@@ -399,6 +426,47 @@ export class TripService {
 
       const trips = result?.data || [];
       const total = result?.metadata?.[0]?.total || 0;
+
+      // Process vehicle details for each trip with dynamic collection lookup
+      for (const trip of trips) {
+        if (trip.vehicleDetails) {
+          // Loop through each key in vehicleDetails (could be vehicleNumber, vehicleType, etc.)
+          for (const vehicleKey of Object.keys(trip.vehicleDetails)) {
+            const vehicleInfo = trip.vehicleDetails[vehicleKey];
+
+            // Check if it has field property with DBmaster
+            if (
+              vehicleInfo &&
+              vehicleInfo.field &&
+              vehicleInfo.field.DBmaster
+            ) {
+              const collectionName = vehicleInfo.field.DBmaster;
+              const vehicleId = vehicleInfo.field.value || vehicleInfo._id;
+
+              try {
+                // Get the dynamic collection using mongoose connection
+                const dynamicCollection =
+                  this.connection.collection(collectionName);
+
+                // Find the vehicle document in the dynamic collection
+                const vehicleDoc = await dynamicCollection.findOne({
+                  _id: new Types.ObjectId(vehicleId),
+                });
+
+                // Add the vehicle details to the trip under the original key
+                if (vehicleDoc) {
+                  trip.vehicleDetails[vehicleKey][collectionName] = vehicleDoc;
+                }
+              } catch (error) {
+                console.error(
+                  `Error fetching vehicle details from ${collectionName} for ${vehicleKey}:`,
+                  error.message,
+                );
+              }
+            }
+          }
+        }
+      }
 
       return { trips, total };
     } catch (error) {
