@@ -5,8 +5,8 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { Model } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import mongoose, { Connection, Model } from 'mongoose';
 import { Trip } from './schema/trip.schema';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
@@ -14,7 +14,10 @@ import { Types } from 'mongoose';
 
 @Injectable()
 export class TripService {
-  constructor(@InjectModel(Trip.name) private tripModel: Model<Trip>) {}
+  constructor(
+    @InjectModel(Trip.name) private tripModel: Model<Trip>,
+    @InjectConnection() private connection: Connection,
+  ) {}
 
   async create(createTripDto: CreateTripDto): Promise<Trip> {
     try {
@@ -69,56 +72,86 @@ export class TripService {
       // Build match stage based on search parameters
       const matchStage = this.buildMatchStage(search);
 
-      // Aggregation pipeline
-      const [result] = await this.tripModel.aggregate([
+      // Get all trips with pagination and filtering
+      let tripsQuery = this.tripModel.aggregate([
         // Add match stage if search parameters are provided
         ...(Object.keys(matchStage).length > 0 ? [{ $match: matchStage }] : []),
+        { $skip: skip },
+        { $limit: limit },
+        // Route detail lookups
         {
-          $facet: {
-            metadata: [{ $count: 'total' }],
-            data: [
-              { $skip: skip },
-              { $limit: limit },
-              {
-                $lookup: {
-                  from: 'geofences',
-                  localField: 'routeDetails.sourceHub',
-                  foreignField: '_id',
-                  as: 'routeDetails.sourceHub',
-                },
-              },
-              {
-                $lookup: {
-                  from: 'geofences',
-                  localField: 'routeDetails.destinationHub',
-                  foreignField: '_id',
-                  as: 'routeDetails.destinationHub',
-                },
-              },
-              {
-                $lookup: {
-                  from: 'geofences',
-                  localField: 'routeDetails.viaHub',
-                  foreignField: '_id',
-                  as: 'routeDetails.viaHub',
-                },
-              },
-              {
-                $lookup: {
-                  from: 'users',
-                  localField: 'userId',
-                  foreignField: '_id',
-                  as: 'userDetail',
-                },
-              },
-            ],
+          $lookup: {
+            from: 'geofences',
+            localField: 'routeDetails.sourceHub',
+            foreignField: '_id',
+            as: 'routeDetails.sourceHub',
+          },
+        },
+        {
+          $lookup: {
+            from: 'geofences',
+            localField: 'routeDetails.destinationHub',
+            foreignField: '_id',
+            as: 'routeDetails.destinationHub',
+          },
+        },
+        {
+          $lookup: {
+            from: 'geofences',
+            localField: 'routeDetails.viaHub',
+            foreignField: '_id',
+            as: 'routeDetails.viaHub',
+          },
+        },
+        // User lookup
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'userDetail',
           },
         },
       ]);
 
-      // Extract data and total count
-      const trips = result?.data || [];
-      const total = result?.metadata?.[0]?.total || 0;
+      // Execute the query to get trips
+      let trips = await tripsQuery.exec();
+
+      // Get total count
+      const total = await this.tripModel.countDocuments(matchStage);
+
+      // Process vehicle details for each trip with dynamic collection lookup
+      for (const trip of trips) {
+        if (
+          trip.vehicleDetails &&
+          trip.vehicleDetails.field &&
+          trip.vehicleDetails.field.DBmaster
+        ) {
+          const collectionName = trip.vehicleDetails.field.DBmaster;
+          const vehicleId = trip.vehicleDetails._id;
+
+          try {
+            // Get the dynamic collection using mongoose connection
+            const dynamicCollection =
+              this.connection.collection(collectionName);
+
+            // Find the vehicle document in the dynamic collection
+            const vehicleDoc = await dynamicCollection.findOne({
+              _id: new Types.ObjectId(vehicleId),
+            });
+            // Add the vehicle details to the trip using collection name as the key
+            if (vehicleDoc) {
+              trip.vehicleDetails[collectionName] = vehicleDoc;
+            }
+          } catch (error) {
+            console.error(
+              `Error fetching vehicle details from ${collectionName}:`,
+              error.message,
+            );
+            // Continue with other trips even if one fails
+          }
+        }
+      }
 
       return { trips, total };
     } catch (error) {
