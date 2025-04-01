@@ -46,6 +46,9 @@ export class Trip extends Document {
   vehicleDetails: Record<string, any>;
 
   @Prop({ type: Object })
+  tripDetails: Record<string, any>;
+
+  @Prop({ type: Object })
   clientDetails: Record<string, any>;
 
   @Prop({ type: Object })

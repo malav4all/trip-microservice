@@ -115,7 +115,7 @@ export class TripService {
               vehicleInfo.field.DBmaster
             ) {
               const collectionName = vehicleInfo.field.DBmaster;
-              const vehicleId = vehicleInfo.field.value || vehicleInfo._id;
+              const vehicleId = vehicleInfo._id;
 
               try {
                 // Get the dynamic collection using mongoose connection

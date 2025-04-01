@@ -67,6 +67,10 @@ export class CreateTripDto {
 
   @IsOptional()
   @IsObject()
+  tripDetails: Record<string, any>;
+
+  @IsOptional()
+  @IsObject()
   clientDetails: Record<string, any>;
 
   @IsOptional()
