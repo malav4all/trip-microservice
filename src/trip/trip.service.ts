@@ -228,6 +228,8 @@ export class TripService {
                 error.message,
               );
             }
+          } else {
+            trip.vehicleDetails[vehicleKey] = trip.vehicleDetails[vehicleKey];
           }
         }
       }
@@ -465,6 +467,8 @@ export class TripService {
                   error.message,
                 );
               }
+            } else {
+              trip.vehicleDetails[vehicleKey] = trip.vehicleDetails[vehicleKey];
             }
           }
         }
