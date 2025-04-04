@@ -138,6 +138,8 @@ export class TripService {
                 );
                 // Continue with other details even if one fails
               }
+            } else {
+              trip.vehicleDetails[vehicleKey] = trip.vehicleDetails[vehicleKey];
             }
           }
         }
